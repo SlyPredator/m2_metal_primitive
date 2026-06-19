@@ -593,6 +593,7 @@ int main(int argc, char** argv) {
     const char* fenv = getenv("M2_DEMO_FRAMES");
     int auto_frames = fenv ? atoi(fenv) : 0;
     if (!auto_frames) {
+        SetConfigFlags(FLAG_WINDOW_RESIZABLE);
         InitWindow(1280, 720, "m2_metal WASM Controller");
         g_font=LoadFontEx("web/assets/font.ttf", 48, 0, 0);
         if (g_font.texture.id==0) g_font=GetFontDefault();

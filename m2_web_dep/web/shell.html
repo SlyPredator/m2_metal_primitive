@@ -1,0 +1,284 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no">
+<title>M2 Metal Web Simulation</title>
+<link rel="shortcut icon" href="assets/favicon.ico" type="image/x-icon">
+<link rel="icon" href="assets/favicon.ico" type="image/x-icon">
+<style>
+  :root {
+    --bg-color: #0b0f19;
+    --card-bg: rgba(17, 24, 39, 0.75);
+    --border-color: rgba(255, 255, 255, 0.08);
+    --accent-color: #3b82f6;
+    --accent-hover: #2563eb;
+    --text-color: #f3f4f6;
+    --text-muted: #9ca3af;
+  }
+  
+  html, body {
+    margin: 0;
+    padding: 0;
+    height: 100%;
+    background: var(--bg-color);
+    color: var(--text-color);
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+    overflow: hidden;
+  }
+  
+  #wrap {
+    position: relative;
+    width: 100vw;
+    height: 100vh;
+  }
+  
+  canvas {
+    display: block;
+    width: 100%;
+    height: 100%;
+    background: #1e293b;
+    outline: none;
+  }
+  
+  .glass-panel {
+    position: absolute;
+    background: var(--card-bg);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    border: 1px solid var(--border-color);
+    border-radius: 16px;
+    box-shadow: 0 10px 30px -10px rgba(0, 0, 0, 0.5);
+    padding: 20px;
+    z-index: 10;
+  }
+  
+  #header {
+    top: 24px;
+    left: 24px;
+    max-width: 320px;
+  }
+  
+  #header h1 {
+    margin: 0 0 6px 0;
+    font-size: 20px;
+    font-weight: 700;
+    background: linear-gradient(135deg, #60a5fa, #3b82f6);
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+  }
+  
+  #header p {
+    margin: 0;
+    font-size: 13px;
+    color: var(--text-muted);
+    line-height: 1.4;
+  }
+  
+  #controls {
+    top: 24px;
+    right: 24px;
+    width: 280px;
+  }
+  
+  .control-group {
+    margin-bottom: 16px;
+  }
+  
+  .control-label {
+    display: flex;
+    justify-content: space-between;
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--text-muted);
+    margin-bottom: 6px;
+  }
+  
+  .control-val {
+    color: var(--accent-color);
+  }
+  
+  input[type="range"] {
+    width: 100%;
+    -webkit-appearance: none;
+    background: rgba(255, 255, 255, 0.1);
+    height: 6px;
+    border-radius: 3px;
+    outline: none;
+  }
+  
+  input[type="range"]::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    width: 16px;
+    height: 16px;
+    border-radius: 50%;
+    background: var(--accent-color);
+    cursor: pointer;
+    transition: background 0.15s;
+  }
+  
+  input[type="range"]::-webkit-slider-thumb:hover {
+    background: var(--accent-hover);
+  }
+  
+  .btn {
+    width: 100%;
+    background: var(--accent-color);
+    border: none;
+    color: white;
+    padding: 10px 16px;
+    font-size: 14px;
+    font-weight: 600;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: background 0.15s, transform 0.1s;
+    outline: none;
+  }
+  
+  .btn:hover {
+    background: var(--accent-hover);
+  }
+  
+  .btn:active {
+    transform: scale(0.98);
+  }
+  
+  .switch { position: relative; display: inline-block; width: 36px; height: 20px; }
+  .switch input { opacity: 0; width: 0; height: 0; }
+  .slider { position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0; background-color: rgba(255, 255, 255, 0.1); transition: .3s; border-radius: 20px; }
+  .slider:before { position: absolute; content: ""; height: 14px; width: 14px; left: 3px; bottom: 3px; background-color: var(--text-muted); transition: .3s; border-radius: 50%; }
+  input:checked + .slider { background-color: var(--accent-color); }
+  input:checked + .slider:before { transform: translateX(16px); background-color: white; }
+  
+  #load-overlay {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: var(--bg-color);
+    font-size: 15px;
+    color: var(--text-muted);
+    z-index: 100;
+    transition: opacity 0.3s ease;
+  }
+</style>
+</head>
+<body>
+<div id="wrap">
+  <div id="load-overlay">Loading WebAssembly Physics & Render Pipeline...</div>
+  
+  <canvas id="canvas" tabindex="-1" oncontextmenu="event.preventDefault()"></canvas>
+  
+  <div id="header" class="glass-panel">
+    <h1>M2 Quadruped</h1>
+    <p>WebAssembly simulation featuring contact physics, analytical inverse kinematics, and virtual stance wrench control.</p>
+  </div>
+  
+  <div id="controls" class="glass-panel">
+    <div class="control-group">
+      <div class="control-label">
+        <span>X Velocity (Forward)</span>
+        <span class="control-val" id="val-vx">0.00 m/s</span>
+      </div>
+      <input type="range" id="slide-vx" min="-2.0" max="2.0" step="0.05" value="0.0">
+    </div>
+    
+    <div class="control-group">
+      <div class="control-label">
+        <span>Y Velocity (Lateral)</span>
+        <span class="control-val" id="val-vy">0.00 m/s</span>
+      </div>
+      <input type="range" id="slide-vy" min="-1.0" max="1.0" step="0.05" value="0.0">
+    </div>
+    
+    <div class="control-group">
+      <div class="control-label">
+        <span>Yaw Rate (Turn)</span>
+        <span class="control-val" id="val-yaw">0.00 rad/s</span>
+      </div>
+      <input type="range" id="slide-yaw" min="-2.0" max="2.0" step="0.1" value="0.0">
+    </div>
+    
+    <div class="control-group" style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 16px;">
+      <div style="font-size: 12px; font-weight: 600; color: var(--text-muted);">Show Foot Trails</div>
+      <label class="switch">
+        <input type="checkbox" id="toggle-trails" checked>
+        <span class="slider"></span>
+      </label>
+    </div>
+    
+    <button class="btn" id="btn-reset">Reset Simulation</button>
+  </div>
+</div>
+
+<script>
+  var Module = {
+    canvas: document.getElementById('canvas'),
+    onRuntimeInitialized: function() {
+      var overlay = document.getElementById('load-overlay');
+      if (overlay) {
+        overlay.style.opacity = 0;
+        setTimeout(function() { overlay.style.display = 'none'; }, 300);
+      }
+      setupUIListeners();
+    }
+  };
+
+  function setupUIListeners() {
+    var slideVx = document.getElementById('slide-vx');
+    var slideVy = document.getElementById('slide-vy');
+    var slideYaw = document.getElementById('slide-yaw');
+    
+    var valVx = document.getElementById('val-vx');
+    var valVy = document.getElementById('val-vy');
+    var valYaw = document.getElementById('val-yaw');
+    
+    var btnReset = document.getElementById('btn-reset');
+    
+    var toggleTrails = document.getElementById('toggle-trails');
+    
+    function updateVelocities() {
+      var vx = parseFloat(slideVx.value);
+      var vy = parseFloat(slideVy.value);
+      var yaw = parseFloat(slideYaw.value);
+      
+      valVx.textContent = vx.toFixed(2) + " m/s";
+      valVy.textContent = vy.toFixed(2) + " m/s";
+      valYaw.textContent = yaw.toFixed(2) + " rad/s";
+      
+      if (Module._set_target_velocity) {
+        Module._set_target_velocity(vx, vy, yaw);
+      }
+    }
+    
+    slideVx.addEventListener('input', updateVelocities);
+    slideVy.addEventListener('input', updateVelocities);
+    slideYaw.addEventListener('input', updateVelocities);
+    
+    toggleTrails.addEventListener('change', function() {
+      if (Module._set_show_trails) {
+        Module._set_show_trails(this.checked ? 1 : 0);
+      }
+    });
+    
+    btnReset.addEventListener('click', function() {
+      // Reset sliders to 0
+      slideVx.value = 0.0;
+      slideVy.value = 0.0;
+      slideYaw.value = 0.0;
+      updateVelocities();
+      
+      if (Module._trigger_reset) {
+        Module._trigger_reset();
+      }
+    });
+
+    // Send initial 0 velocities
+    updateVelocities();
+  }
+</script>
+{{{ SCRIPT }}}
+</body>
+</html>

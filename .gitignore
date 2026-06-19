@@ -1,0 +1,28 @@
+# WebAssembly/Native Build outputs
+m2_web_dep/build/
+
+# Emscripten SDK
+m2_web_dep/emsdk/
+
+# Python virtual environment (root & nested)
+.venv/
+venv/
+env/
+
+# Python caches and temporary files
+**/__pycache__/
+**/*.py[cod]
+**/*$py.class
+
+# Generated simulation plots
+plots/*.png
+
+# OS-specific files
+.DS_Store
+Thumbs.db
+
+# IDEs and Editors
+.vscode/
+.idea/
+*.swp
+*~

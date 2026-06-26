@@ -47,11 +47,19 @@ L += [carr("hc_jnt_type", m.jnt_type, "int"),
       carr("hc_jnt_actfrclimited", m.jnt_actfrclimited, "int"),
       carr("hc_jnt_actfrcrange", m.jnt_actfrcrange), ""]
 # dofs
+# NOTE: Zero out floating-base DOFs (0-5) for damping and frictionloss.
+dof_damping = m.dof_damping.copy()
+dof_frictionloss = m.dof_frictionloss.copy()
+for i in range(m.nv):
+    if m.dof_bodyid[i] == 1 and i < 6:  # floating base DOFs
+        dof_damping[i] = 0.0
+        dof_frictionloss[i] = 0.0
+
 L += [carr("hc_dof_Madr", m.dof_Madr, "int"),
       carr("hc_dof_parentid", m.dof_parentid, "int"),
       carr("hc_dof_bodyid", m.dof_bodyid, "int"),
       carr("hc_dof_armature", m.dof_armature),
-      carr("hc_dof_damping", m.dof_damping),
+      carr("hc_dof_damping", dof_damping),
       carr("hc_qpos0", m.qpos0), ""]
 # actuators
 L += [carr("hc_act_ctrlrange", m.actuator_ctrlrange),
@@ -96,7 +104,7 @@ else:
     L += ["static const int hc_pair_geom1[1]={0}, hc_pair_geom2[1]={0}, hc_pair_dim[1]={0};",
           "static const double hc_pair_margin[1]={0}, hc_pair_gap[1]={0}, hc_pair_friction[5]={0}, hc_pair_solref[2]={0}, hc_pair_solimp[5]={0};"]
 
-L += [carr("hc_dof_frictionloss", m.dof_frictionloss),
+L += [carr("hc_dof_frictionloss", dof_frictionloss),
       carr("hc_dof_solref", m.dof_solref), carr("hc_dof_solimp", m.dof_solimp),
       carr("hc_dof_invweight0", m.dof_invweight0),
       carr("hc_body_invweight0", m.body_invweight0), ""]
@@ -107,3 +115,4 @@ L += [carr("hc_jnt_limited", m.jnt_limited, "int"),
 Path(out).parent.mkdir(parents=True, exist_ok=True)
 Path(out).write_text("\n".join(L) + "\n")
 print(f"wrote {out}: nq={m.nq} nv={m.nv} nbody={m.nbody} njnt={m.njnt} nM={m.nM}")
+
